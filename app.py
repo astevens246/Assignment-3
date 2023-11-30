@@ -1,6 +1,3 @@
-testing 
-
-
 from flask import Flask, request, render_template
 from PIL import Image, ImageFilter
 from pprint import PrettyPrinter
@@ -55,14 +52,30 @@ def compliments():
     """Shows the user a form to get compliments."""
     return render_template('compliments_form.html')
 
-@app.route('/compliments_results')
+@app.route('/compliments_results', methods=['POST'])
 def compliments_results():
-    """Show the user some compliments."""
-    context = {
-        # TODO: Enter your context variables here.
-    }
+    if request.method == 'POST':
+        # Get data from the form
+        user_name = request.form.get('user_name')
+        want_compliments = request.form.get('want_compliments')  # Keep it as a string
 
-    return render_template('compliments_results.html', **context)
+        # Greet the user by name
+        greeting = f'Hi {user_name}!'
+
+        # Check if user wants compliments
+        compliments_list = []
+        if want_compliments == 'yes':
+            # Choose random compliments from the list
+            compliments_list = random.sample(list_of_compliments, int(request.form.get('num_compliments')))
+
+        # Only render the template if the checkbox was checked
+        if want_compliments == 'yes':
+            context = {
+                'greeting': greeting,
+                'compliments_list': compliments_list,
+            }
+
+            return render_template('compliments_results.html', **context)
 
 
 ################################################################################
