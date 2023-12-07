@@ -115,8 +115,6 @@ def animal_facts():
     }
     return render_template('animal_facts.html', **context)
 
-if __name__ == '__main__':
-    app.run(debug=True)
 
 
 ################################################################################
@@ -250,3 +248,4 @@ def gif_search():
 if __name__ == '__main__':
     app.config['ENV'] = 'development'
     app.run(debug=True)
+
