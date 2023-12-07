@@ -57,7 +57,11 @@ def compliments_results():
     if request.method == 'POST':
         # Get data from the form
         user_name = request.form.get('user_name')
-        want_compliments = request.form.get('want_compliments')  # Keep it as a string
+        want_compliments = request.form.get('want_compliments', 'no')  # Default to 'no' if not provided
+        num_compliments = int(request.form.get('num_compliments'))
+
+        # Print statements for debugging
+        print(f'user_name: {user_name}, want_compliments: {want_compliments}, num_compliments: {num_compliments}')
 
         # Greet the user by name
         greeting = f'Hi {user_name}!'
@@ -66,16 +70,15 @@ def compliments_results():
         compliments_list = []
         if want_compliments == 'yes':
             # Choose random compliments from the list
-            compliments_list = random.sample(list_of_compliments, int(request.form.get('num_compliments')))
+            compliments_list = random.sample(list_of_compliments, num_compliments)
 
-        # Only render the template if the checkbox was checked
-        if want_compliments == 'yes':
-            context = {
-                'greeting': greeting,
-                'compliments_list': compliments_list,
-            }
+        context = {
+            'greeting': greeting,
+            'want_compliments': want_compliments,  # Add this line to pass want_compliments to the template
+            'compliments_list': compliments_list,
+        }
 
-            return render_template('compliments_results.html', **context)
+        return render_template('compliments_results.html', **context)
 
 
 ################################################################################
@@ -90,18 +93,30 @@ animal_to_fact = {
     'narwhal': 'Narwhal tusks are really an "inside out" tooth.'
 }
 
-@app.route('/animal_facts')
+@app.route('/animal_facts', methods=['GET', 'POST'])
 def animal_facts():
     """Show a form to choose an animal and receive facts."""
 
-    # TODO: Collect the form data and save as variables
+    all_animals = list(animal_to_fact.keys())
+    
+    chosen_animal = None
+    chosen_fact = None
+    
+    if request.method == 'POST':
+        chosen_animal = request.form.get('animal')
+        
+        if chosen_animal in animal_to_fact:
+            chosen_fact = animal_to_fact.get(chosen_animal)
 
     context = {
-        # TODO: Enter your context variables here for:
-        # - the list of all animals (get from animal_to_fact)
-        # - the chosen animal fact (may be None if the user hasn't filled out the form yet)
+        'all_animals': all_animals,
+        'chosen_animal': chosen_animal,
+        'chosen_fact': chosen_fact
     }
     return render_template('animal_facts.html', **context)
+
+if __name__ == '__main__':
+    app.run(debug=True)
 
 
 ################################################################################
@@ -144,43 +159,42 @@ def apply_filter(file_path, filter_name):
 @app.route('/image_filter', methods=['GET', 'POST'])
 def image_filter():
     """Filter an image uploaded by the user, using the Pillow library."""
-    filter_types = filter_types_dict.keys()
+    filter_types = list(filter_types_dict.keys())
 
     if request.method == 'POST':
-        
-        # TODO: Get the user's chosen filter type (whichever one they chose in the form) and save
-        # as a variable
-        # HINT: remember that we're working with a POST route here so which requests function would you use?
-        filter_type = ''
-        
+        # Get the user's chosen filter type
+        filter_type = request.form.get('filter_type')
+
         # Get the image file submitted by the user
         image = request.files.get('users_image')
 
-        # TODO: call `save_image()` on the image & the user's chosen filter type, save the returned
-        # value as the new file path
+        if image:
+            # Save the image and get the file path
+            file_path = save_image(image, filter_type)
 
-        # TODO: Call `apply_filter()` on the file path & filter type
+            # Apply the selected filter to the image
+            apply_filter(file_path, filter_type)
 
-        image_url = f'./static/images/{image.filename}'
+            # Construct the correct image URL for rendering
+            image_url = f'/static/images/{image.filename}'
 
-        context = {
-            # TODO: Add context variables here for:
-            # - The full list of filter types
-            # - The image URL
-        }
+            context = {
+                'filter_types': filter_types,
+                'image_url': image_url,
+            }
 
-        return render_template('image_filter.html', **context)
+            return render_template('image_filter.html', **context)
 
-    else: # if it's a GET request
-        context = {
-            # TODO: Add context variable here for the full list of filter types
-        }
-        return render_template('image_filter.html', **context)
-
+    # If it's a GET request or there was an issue with the POST request
+    context = {
+        'filter_types': filter_types,
+    }
+    return render_template('image_filter.html', **context)
 
 ################################################################################
 # GIF SEARCH ROUTE
 ################################################################################
+# The Tenor website said that it no longer supports VI API Key registration so I just used the API key from the example
 
 """You'll be using the Tenor API for this next section. 
 Be sure to take a look at their API. 
@@ -203,14 +217,17 @@ def gif_search():
     if request.method == 'POST':
         # TODO: Get the search query & number of GIFs requested by the user, store each as a 
         # variable
-
+        search_query = request.form.get('search_query')
+        quantity = int(request.form.get('quantity', 5))
+        
+        # make the API request to Tenor
         response = requests.get(
             TENOR_URL,
             {
                 # TODO: Add in key-value pairs for:
-                # - 'q': the search query
-                # - 'key': the API key (defined above)
-                # - 'limit': the number of GIFs requested
+                #'q': search_query
+                #'key': the API key (defined above)
+                #'limit': the number of GIFs requested
             })
 
         gifs = json.loads(response.content).get('results')
