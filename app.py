@@ -218,33 +218,38 @@ def gif_search():
         search_query = request.form.get('search_query')
         quantity = int(request.form.get('quantity', 5))
         
+        # Print API key for verification
+        print("API_KEY:", API_KEY)
+
         # make the API request to Tenor
         response = requests.get(
             TENOR_URL,
-            {
-                # TODO: Add in key-value pairs for:
-                #'q': search_query
-                #'key': the API key (defined above)
-                #'limit': the number of GIFs requested
+            params={
+                'q': search_query,
+                'key': API_KEY,
+                'limit': quantity
             })
 
-        gifs = json.loads(response.content).get('results')
+        # Print the API response content
+        print("API Response Content:", response.content)
+
+        try:
+            # Try to parse the response as JSON
+            gifs = json.loads(response.content).get('results')
+            
+            # Print the parsed JSON for verification
+            print("Parsed JSON:", gifs)
+        except json.decoder.JSONDecodeError:
+            # Handle the case where the response is not in JSON format
+            gifs = []
 
         context = {
             'gifs': gifs
         }
 
-         # Uncomment me to see the result JSON!
-        # Look closely at the response! It's a list
-        # list of data. The media property contains a 
-        # list of media objects. Get the gif and use it's 
-        # url in your template to display the gif. 
-        # pp.pprint(gifs)
-
         return render_template('gif_search.html', **context)
     else:
         return render_template('gif_search.html')
-
 if __name__ == '__main__':
     app.config['ENV'] = 'development'
     app.run(debug=True)
